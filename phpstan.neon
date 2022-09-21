@@ -1,0 +1,22 @@
+includes:
+    - ./vendor/nunomaduro/larastan/extension.neon
+
+parameters:
+    level: 8
+    checkGenericClassInNonGenericObjectType: false
+    checkMissingIterableValueType: false
+    inferPrivatePropertyTypeFromConstructor: true
+    noUnnecessaryCollectionCall: false
+
+    paths:
+        - app
+        - bootstrap
+        - config
+        - database
+        - routes
+
+    excludePaths:
+        - database/seeders/*
+
+    ignoreErrors:
+        - '#Call to method environment\(\) on an unknown class Illuminate\\Foundation\\Application#'

@@ -1,0 +1,12 @@
+/vendor
+/.idea
+Homestead.json
+Homestead.yaml
+.env
+.env.testing_phpstorm
+.phpunit.result.cache
+/.ecs_cache
+/public/docs
+/.scribe
+/.test_coverage
+.DS_Store

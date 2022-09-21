@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migrations
+  namespace: production
+  labels:
+    app: migrations
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: migrations
+  template:
+    metadata:
+      labels:
+        app: migrations
+    spec:
+      containers:
+        - name: migrations
+          image: 635370823819.dkr.ecr.us-west-2.amazonaws.com/accounts:placeholder
+          envFrom:
+          - configMapRef:
+              name: accounts
+          - secretRef:
+              name: k8s-production-accounts
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "2G"

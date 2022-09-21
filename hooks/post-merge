@@ -1,0 +1,13 @@
+#!/bin/bash
+
+yellow='\033[0;33m'
+no_color='\033[0m'
+
+function changed() {
+    git diff --name-only HEAD@{2} HEAD | grep "^$1" >/dev/null 2>&1
+}
+
+if changed 'composer.lock'; then
+    echo -e "${yellow}composer.lock is changed, running install command...${no_color}"
+    docker exec -t accounts composer install
+fi

@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounts-deployment
+  labels:
+    app: accounts
+spec:
+  selector:
+    matchLabels:
+      app: accounts
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+        config.linkerd.io/proxy-cpu-limit: "0.5"
+        config.linkerd.io/proxy-cpu-request: "0.2"
+        config.linkerd.io/proxy-memory-limit: 500Mi
+        config.linkerd.io/proxy-memory-request: 128Mi
+      labels:
+        app: accounts
+    spec:
+      containers:
+        - name: accounts
+          image: 635370823819.dkr.ecr.us-west-2.amazonaws.com/accounts:placeholder
+          imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "400M"
+              cpu: "500m"
+            requests:
+              memory: "100M"
+              cpu: "100m"
+          ports:
+            - containerPort: 80
+          env:
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: DD_ENV
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/env']
+            - name: DD_SERVICE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/service']
+            - name: DD_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/version']
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            exec:
+              command:
+              - "curl"
+              - "--fail"
+              - "-o"
+              - "/dev/null"
+              - "http://localhost:80/health"
+            periodSeconds: 30
+            failureThreshold: 5
+            successThreshold: 1
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+              - "curl"
+              - "--fail"
+              - "-o"
+              - "/dev/null"
+              - "http://localhost:80/health"
+            periodSeconds: 60
+            failureThreshold: 5
+            successThreshold: 1
+            timeoutSeconds: 5

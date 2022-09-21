@@ -1,0 +1,631 @@
+openapi: 3.0.3
+info:
+  title: Accounts
+  description: ''
+  version: 1.0.0
+servers:
+  -
+    url: 'http://localhost:8888'
+paths:
+  /:
+    get:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses: {  }
+      tags:
+        - Endpoints
+      security: []
+  /health:
+    get:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses: {  }
+      tags:
+        - Endpoints
+      security: []
+  /accounts:
+    post:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'when authenticated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    account:
+                      id: 39c1bca6-d86a-4e04-8d2a-8db878aab315
+                      name: 'Acme Corporation'
+                      created_at: '2021-10-15T06:45:58.000000Z'
+                      updated_at: '2021-10-15T06:45:58.000000Z'
+                      information:
+                        id: 1
+                        value:
+                          company_name: 'Acme Corporation'
+                          onboarding_step: '{"version":2,"meta":{"noDataSourcesConnected":false,"additionalIntegrationsCompleted":false,"shouldShowWelcome":false,"hasViewedData":false}}'
+                  meta: {  }
+                properties:
+                  data:
+                    type: object
+                    example:
+                      account:
+                        id: 39c1bca6-d86a-4e04-8d2a-8db878aab315
+                        name: 'Acme Corporation'
+                        created_at: '2021-10-15T06:45:58.000000Z'
+                        updated_at: '2021-10-15T06:45:58.000000Z'
+                        information:
+                          id: 1
+                          value:
+                            company_name: 'Acme Corporation'
+                            onboarding_step: '{"version":2,"meta":{"noDataSourcesConnected":false,"additionalIntegrationsCompleted":false,"shouldShowWelcome":false,"hasViewedData":false}}'
+                  meta:
+                    type: object
+                    example: {  }
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                account_name:
+                  type: string
+                  description: ''
+                  example: consequatur
+                user_id:
+                  type: string
+                  description: ''
+                  example: consequatur
+                role_id:
+                  type: string
+                  description: ''
+                  example: consequatur
+              required:
+                - account_name
+                - user_id
+                - role_id
+      security: []
+    get:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses:
+        401:
+          description: 'when not authenticated'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized.
+        200:
+          description: 'when authenticated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    accounts:
+                      -
+                        id: 39c1bca6-d86a-4e04-8d2a-8db878aab315
+                        name: 'Acme Corporation'
+                        created_at: '2021-10-15T06:45:58.000000Z'
+                        updated_at: '2021-10-15T06:45:58.000000Z'
+                        information:
+                          id: 1
+                          value:
+                            company_name: 'Acme Corporation'
+                            onboarding_step: '{"version":2,"meta":{"noDataSourcesConnected":false,"additionalIntegrationsCompleted":false,"shouldShowWelcome":false,"hasViewedData":false}}'
+                  meta: {  }
+                properties:
+                  data:
+                    type: object
+                    example:
+                      accounts:
+                        -
+                          id: 39c1bca6-d86a-4e04-8d2a-8db878aab315
+                          name: 'Acme Corporation'
+                          created_at: '2021-10-15T06:45:58.000000Z'
+                          updated_at: '2021-10-15T06:45:58.000000Z'
+                          information:
+                            id: 1
+                            value:
+                              company_name: 'Acme Corporation'
+                              onboarding_step: '{"version":2,"meta":{"noDataSourcesConnected":false,"additionalIntegrationsCompleted":false,"shouldShowWelcome":false,"hasViewedData":false}}'
+                  meta:
+                    type: object
+                    example: {  }
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  description: ''
+                  example: consequatur
+              required:
+                - user_id
+      security: []
+  '/accounts/{id}/role':
+    get:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'when authenticated'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+        401:
+          description: 'when not authenticated'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized.
+        404:
+          description: 'account not found'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  description: ''
+                  example: consequatur
+              required:
+                - user_id
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'Optional parameter.'
+        required: true
+        schema:
+          type: string
+        examples:
+          omitted:
+            summary: 'When the value is omitted'
+            value: ''
+          present:
+            summary: 'When the value is present'
+            value: consequatur
+  '/accounts/{id}/step':
+    put:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses:
+        204:
+          description: 'when authenticated'
+        401:
+          description: 'when not authenticated'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized.
+        404:
+          description: 'account not found'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                onboarding_step:
+                  type: string
+                  description: ''
+                  example: consequatur
+              required:
+                - onboarding_step
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'Optional parameter.'
+        required: true
+        schema:
+          type: string
+        examples:
+          omitted:
+            summary: 'When the value is omitted'
+            value: ''
+          present:
+            summary: 'When the value is present'
+            value: consequatur
+  '/accounts/{id}':
+    put:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses:
+        401:
+          description: 'when not authenticated'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized.
+        404:
+          description: 'account not found'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+        200:
+          description: 'when authenticated'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  data:
+                    account:
+                      id: 39c1bca6-d86a-4e04-8d2a-8db878aab315
+                      name: 'Acme Corporation'
+                      created_at: '2021-10-15T06:45:58.000000Z'
+                      updated_at: '2021-10-15T06:45:58.000000Z'
+                      information:
+                        id: 1
+                        value:
+                          company_name: 'Acme Corporation'
+                          onboarding_step: '{"version":2,"meta":{"noDataSourcesConnected":false,"additionalIntegrationsCompleted":false,"shouldShowWelcome":false,"hasViewedData":false}}'
+                  meta: {  }
+                properties:
+                  data:
+                    type: object
+                    example:
+                      account:
+                        id: 39c1bca6-d86a-4e04-8d2a-8db878aab315
+                        name: 'Acme Corporation'
+                        created_at: '2021-10-15T06:45:58.000000Z'
+                        updated_at: '2021-10-15T06:45:58.000000Z'
+                        information:
+                          id: 1
+                          value:
+                            company_name: 'Acme Corporation'
+                            onboarding_step: '{"version":2,"meta":{"noDataSourcesConnected":false,"additionalIntegrationsCompleted":false,"shouldShowWelcome":false,"hasViewedData":false}}'
+                  meta:
+                    type: object
+                    example: {  }
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                account_name:
+                  type: string
+                  description: ''
+                  example: consequatur
+              required:
+                - account_name
+      security: []
+    delete:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses:
+        204:
+          description: 'when authenticated'
+        401:
+          description: 'when not authenticated'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized.
+        404:
+          description: 'account not found'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+      tags:
+        - Endpoints
+      security: []
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'Optional parameter.'
+        required: true
+        schema:
+          type: string
+        examples:
+          omitted:
+            summary: 'When the value is omitted'
+            value: ''
+          present:
+            summary: 'When the value is present'
+            value: consequatur
+  '/{accountId}/payment/checkout':
+    post:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses:
+        303:
+          description: 'when successful'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Redirects to Stripe'
+        400:
+          description: 'when missing account ID in the URL'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    message: 'Some error message'
+                    code: 1
+                properties:
+                  error:
+                    type: object
+                    example:
+                      message: 'Some error message'
+                      code: 1
+        404:
+          description: 'when account ID not found in the DB'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    message: 'Some error message'
+                    code: 1
+                properties:
+                  error:
+                    type: object
+                    example:
+                      message: 'Some error message'
+                      code: 1
+        422:
+          description: 'when validation fails'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  error:
+                    message: 'Some error message'
+                    code: 1
+                properties:
+                  error:
+                    type: object
+                    example:
+                      message: 'Some error message'
+                      code: 1
+      tags:
+        - Endpoints
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                price_id:
+                  type: string
+                  description: ''
+                  example: consequatur
+              required:
+                - price_id
+      security: []
+    parameters:
+      -
+        in: path
+        name: accountId
+        description: ''
+        example: consequatur
+        required: true
+        schema:
+          type: string
+  /payments/webhook:
+    post:
+      summary: ''
+      description: ''
+      parameters:
+        -
+          in: header
+          name: Content-Type
+          description: ''
+          example: application/json
+          schema:
+            type: string
+        -
+          in: header
+          name: Accept
+          description: ''
+          example: application/json
+          schema:
+            type: string
+      responses:
+        204:
+          description: 'when successful'
+        400:
+          description: 'when error during parsing/signing the Stripe payload'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ''
+      tags:
+        - Endpoints
+      security: []
+tags:
+  -
+    name: Endpoints
+    description: ''

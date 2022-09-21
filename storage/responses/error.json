@@ -1,0 +1,6 @@
+{
+    "error": {
+        "message": "Some error message",
+        "code": 1
+    }
+}

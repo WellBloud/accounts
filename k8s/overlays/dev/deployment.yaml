@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounts-deployment
+  labels:
+    app: accounts
+    tags.datadoghq.com/env: "dev"
+    tags.datadoghq.com/service: "accounts"
+    tags.datadoghq.com/version: "1.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: accounts
+  template:
+    metadata:
+      labels:
+        app: accounts
+        tags.datadoghq.com/env: "dev"
+        tags.datadoghq.com/service: "accounts"
+        tags.datadoghq.com/version: "1.0"
+    spec:
+      containers:
+        - name: accounts
+          envFrom:
+          - configMapRef:
+              name: accounts
+          - secretRef:
+              name: k8s-dev-accounts

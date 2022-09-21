@@ -1,0 +1,285 @@
+image:
+  name: 635370823819.dkr.ecr.us-west-2.amazonaws.com/aws-cli:1.6
+  aws:
+    access-key: $AWS_ACCESS_KEY_ID
+    secret-key: $AWS_SECRET_ACCESS_KEY
+
+.eksloginstaging: &ekslogindev |
+  aws sts assume-role --role-arn "arn:aws:iam::009550271529:role/joinr-dev-eks-access-role" --role-session-name=dev > assume-role-output.txt
+  AWS_ACCESS_KEY_ID=$(grep AccessKeyId assume-role-output.txt| cut -d ':' -f2 | tr -d '",\,  ')
+  export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY=$(grep SecretAccessKey assume-role-output.txt| cut -d ':' -f2 | tr -d '",\,  ')
+  export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+  AWS_SESSION_TOKEN=$(grep SessionToken assume-role-output.txt| cut -d ':' -f2 | tr -d '",\,  ')
+  export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN
+  aws eks --region us-west-2 update-kubeconfig --name develop
+
+
+.eksloginproduction: &eksloginproduction |
+  aws sts assume-role --role-arn "arn:aws:iam::717978839212:role/joinr-prod-eks-access-role" --role-session-name=prod > assume-role-output.txt
+  AWS_ACCESS_KEY_ID=$(grep AccessKeyId assume-role-output.txt| cut -d ':' -f2 | tr -d '",\,  ')
+  export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY=$(grep SecretAccessKey assume-role-output.txt| cut -d ':' -f2 | tr -d '",\,  ')
+  export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+  AWS_SESSION_TOKEN=$(grep SessionToken assume-role-output.txt| cut -d ':' -f2 | tr -d '",\,  ')
+  export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN
+  aws eks --region us-west-2 update-kubeconfig --name joinr-prod
+
+.awssetup: &awssetup |
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip awscliv2.zip
+  ./aws/install
+  rm -rf awscliv2.zip
+  rm -rf aws
+
+.imagepush: &imagepush |
+  aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 635370823819.dkr.ecr.us-west-2.amazonaws.com
+  docker build -t $APP_NAME:$TAG -f docker/php/Dockerfile .
+  docker tag $APP_NAME:$TAG 635370823819.dkr.ecr.us-west-2.amazonaws.com/$APP_NAME:$TAG
+  docker push 635370823819.dkr.ecr.us-west-2.amazonaws.com/$APP_NAME:$TAG
+
+.runtests: &runtests |
+  apt-get update && apt-get install -qy git curl libmcrypt-dev unzip libpq-dev libxml2-dev libbz2-dev libc-client-dev libkrb5-dev libpng-dev libzip-dev postgresql postgresql-contrib build-essential
+  docker-php-ext-install pdo pdo_pgsql pgsql
+  pecl install redis && docker-php-ext-enable redis
+  pecl install pcov && docker-php-ext-enable pcov
+  ln -f -s .env.bitbucket .env
+  curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  composer install --no-suggest
+  psql -h localhost -U user accounts -c "create schema accounts;"
+  php artisan migrate --seed
+  composer coding-standards:check
+  composer code:analysis
+  composer tests:bb
+  php scripts/test_coverage_checker.php .test_coverage/clover.xml 70
+
+pipelines:
+  default:
+    - step:
+        name: "Tests"
+        image: php:8.1-fpm
+        caches:
+          - composer
+        script:
+          - *runtests
+        services:
+          - postgres
+          - redis
+        environment:
+          DB_HOST: '127.0.0.1'
+          REDIS_HOST: '127.0.0.1'
+  branches:
+    main:
+      - step:
+          name: "Tests"
+          image: php:8.1-fpm
+          caches:
+            - composer
+          script:
+            - *runtests
+          services:
+            - postgres
+            - redis
+          environment:
+            DB_HOST: '127.0.0.1'
+            REDIS_HOST: '127.0.0.1'
+      - step:
+          image: atlassian/default-image:2
+          name: "Docker build and image export"
+          services:
+            - docker
+          caches:
+            - docker
+            - composer
+          script:
+            - *awssetup
+            - export APP_NAME="accounts"
+            - export TAG=$BITBUCKET_COMMIT
+            - *imagepush
+      - step:
+          name: "Laravel migrations dev"
+          script:
+            - export AWS_ACCESS_KEY_ID=${JOINR_DEV_ACCESS_KEY_ID}
+            - export AWS_SECRET_ACCESS_KEY=${JOINR_DEV_SECRET_ACCESS_KEY}
+            - *ekslogindev
+            - kubectl delete -n dev deployment migrations || true
+            - sed -i "s/placeholder/$BITBUCKET_COMMIT/" k8s/migrations/migrations-dev.yaml
+            - kubectl apply -f k8s/migrations/migrations-dev.yaml -n dev
+            - sleep 15
+            - export POD=$(kubectl -n dev get pod | grep migrations | cut -d " " -f1)
+            - kubectl -n dev exec $POD -- php artisan migrate
+      - step:
+          name: "Kubernetes deployment to dev"
+          deployment: dev
+          script:
+            - aws s3 cp s3://joinr-config/dev/ingress.yaml k8s/overlays/dev
+            - export AWS_ACCESS_KEY_ID=${JOINR_DEV_ACCESS_KEY_ID}
+            - export AWS_SECRET_ACCESS_KEY=${JOINR_DEV_SECRET_ACCESS_KEY}
+            - *ekslogindev
+            - kubectl delete -n dev configmap accounts
+            - sed -i "s/placeholder/$BITBUCKET_COMMIT/" k8s/base/deployment.yaml
+            - kubectl apply -k k8s/overlays/dev
+      - step:
+          name: "Laravel migrations qa"
+          script:
+            - export AWS_ACCESS_KEY_ID=${JOINR_DEV_ACCESS_KEY_ID}
+            - export AWS_SECRET_ACCESS_KEY=${JOINR_DEV_SECRET_ACCESS_KEY}
+            - *ekslogindev
+            - kubectl delete -n qa deployment migrations || true
+            - sed -i "s/placeholder/$BITBUCKET_COMMIT/" k8s/migrations/migrations-qa.yaml
+            - kubectl apply -f k8s/migrations/migrations-qa.yaml
+            - sleep 15
+            - export POD=$(kubectl -n qa get pod | grep migrations | cut -d " " -f1)
+            - kubectl -n qa exec $POD -- php artisan migrate:fresh
+            - kubectl -n qa exec $POD -- php artisan db:seed --class=QAAccounts
+      - step:
+          name: "Kubernetes deployment to qa"
+          deployment: qa
+          script:
+            - aws s3 cp s3://joinr-config/qa/ingress.yaml k8s/overlays/qa
+            - export AWS_ACCESS_KEY_ID=${JOINR_DEV_ACCESS_KEY_ID}
+            - export AWS_SECRET_ACCESS_KEY=${JOINR_DEV_SECRET_ACCESS_KEY}
+            - *ekslogindev
+            - kubectl delete -n qa configmap accounts
+            - sed -i "s/placeholder/$BITBUCKET_COMMIT/" k8s/base/deployment.yaml
+            - kubectl apply -k k8s/overlays/qa
+    hotfix/*:
+      - step:
+          name: "Tests"
+          image: php:8.1-fpm
+          caches:
+          - composer
+          script:
+            - *runtests
+          services:
+            - postgres
+            - redis
+          environment:
+            DB_HOST: '127.0.0.1'
+            REDIS_HOST: '127.0.0.1'
+      - step:
+          image: atlassian/default-image:2
+          name: "Docker build and image export"
+          services:
+            - docker
+          caches:
+            - docker
+            - composer
+          script:
+            - *awssetup
+            - export APP_NAME="accounts"
+            - export TAG=$BITBUCKET_COMMIT
+            - *imagepush
+    release/*:
+      - step:
+          name: "Tests"
+          image: php:8.1-fpm
+          caches:
+          - composer
+          script:
+            - *runtests
+          services:
+            - postgres
+            - redis
+          environment:
+            DB_HOST: '127.0.0.1'
+            REDIS_HOST: '127.0.0.1'
+      - step:
+          image: atlassian/default-image:2
+          name: "Docker build and image export"
+          services:
+            - docker
+          caches:
+            - docker
+            - composer
+          script:
+            - *awssetup
+            - export APP_NAME="accounts"
+            - export TAG=$BITBUCKET_COMMIT
+            - *imagepush
+      - step:
+          name: "Laravel migrations staging"
+          script:
+            - export AWS_ACCESS_KEY_ID=${JOINR_DEV_ACCESS_KEY_ID}
+            - export AWS_SECRET_ACCESS_KEY=${JOINR_DEV_SECRET_ACCESS_KEY}
+            - *ekslogindev
+            - kubectl delete -n staging deployment migrations || true
+            - sed -i "s/placeholder/$BITBUCKET_COMMIT/" k8s/migrations/migrations-stg.yaml
+            - kubectl apply -f k8s/migrations/migrations-stg.yaml -n staging
+            - sleep 15
+            - export POD=$(kubectl -n staging get pod | grep migrations | cut -d " " -f1)
+            - kubectl -n staging exec $POD -- php artisan migrate
+      - step:
+          name: "Kubernetes deployment to staging"
+          deployment: staging
+          script:
+            - aws s3 cp s3://joinr-config/stg/ingress.yaml k8s/overlays/staging
+            - export AWS_ACCESS_KEY_ID=${JOINR_DEV_ACCESS_KEY_ID}
+            - export AWS_SECRET_ACCESS_KEY=${JOINR_DEV_SECRET_ACCESS_KEY}
+            - *ekslogindev
+            - kubectl delete -n staging configmap accounts
+            - sed -i "s/placeholder/$BITBUCKET_COMMIT/" k8s/base/deployment.yaml
+            - kubectl apply -k k8s/overlays/staging
+  tags:
+    release-*:
+      - step:
+          name: "Tests"
+          image: php:8.1-fpm
+          caches:
+            - composer
+          script:
+            - *runtests
+          services:
+            - postgres
+            - redis
+          environment:
+            DB_HOST: '127.0.0.1'
+            REDIS_HOST: '127.0.0.1'
+      - step:
+          image: atlassian/default-image:2
+          name: "Docker build and image export"
+          services:
+            - docker
+          caches:
+            - docker
+            - composer
+          script:
+            - *awssetup
+            - export APP_NAME="accounts"
+            - export TAG=$BITBUCKET_COMMIT
+            - *imagepush
+      - step:
+          name: "Laravel migrations production"
+          script:
+            - export AWS_ACCESS_KEY_ID=${JOINR_PROD_ACCESS_KEY_ID}
+            - export AWS_SECRET_ACCESS_KEY=${JOINR_PROD_SECRET_ACCESS_KEY}
+            - *eksloginproduction
+            - kubectl delete -n production deployment migrations || true
+            - sed -i "s/placeholder/$BITBUCKET_COMMIT/" k8s/migrations/migrations-prod.yaml
+            - kubectl apply -f k8s/migrations/migrations-prod.yaml -n production
+            - sleep 15
+            - export POD=$(kubectl -n production get pod | grep migrations | cut -d " " -f1)
+            - kubectl -n production exec $POD -- php artisan migrate --force
+      - step:
+          name: "Kubernetes deployment"
+          deployment: production
+          script:
+            - aws s3 cp s3://joinr-config/prod/ingress.yaml k8s/overlays/production
+            - export AWS_ACCESS_KEY_ID=${JOINR_PROD_ACCESS_KEY_ID}
+            - export AWS_SECRET_ACCESS_KEY=${JOINR_PROD_SECRET_ACCESS_KEY}
+            - *eksloginproduction
+            - kubectl delete -n production configmap accounts
+            - sed -i "s/placeholder/$BITBUCKET_COMMIT/" k8s/base/deployment.yaml
+            - kubectl apply -k k8s/overlays/production -n production
+definitions:
+  services:
+    postgres:
+      image: postgres:latest
+      variables:
+        POSTGRES_DB: 'accounts'
+        POSTGRES_USER: 'user'
+        POSTGRES_PASSWORD: 'secret'
+      memory: 512
+    redis:
+      image: redis:latest
+      memory: 128

@@ -1,0 +1,45 @@
+#!/bin/bash
+
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[0;33m'
+no_color='\033[0m'
+
+BRANCH=`git rev-parse --abbrev-ref HEAD`
+if [[ "$BRANCH" =~ ^(main)$ ]]; then
+    echo -e "${red}You are on <$BRANCH> branch.${no_color}"
+
+    # Read user input, assign stdin to the keyboard
+    exec < /dev/tty
+    while read -p "Are you sure you want to push to this branch? (y/n) " yn; do
+        case $yn in
+            [Yy] ) echo -e "${red}Ok then! Hope you know what you are doing...${no_color}"; break;;
+            [Nn] ) exit 1; break;;
+            * ) echo -e "${red}Please answer y (yes) or n (no):${no_color}" && continue;
+        esac
+    done
+    exec <&-
+fi
+
+echo -e "${yellow}Running coding standards fixer...${no_color}"
+docker exec -t accounts composer coding-standards:check
+if [ "$?" != 0 ]; then
+    echo -e "${red}There seems to be inconsistencies in coding standards. Please fix them before committing.${no_color}"
+    exit 1
+fi
+
+echo -e "${yellow}Running code analysis with phpstan...${no_color}"
+docker exec -t accounts composer code:analysis
+if [ "$?" != 0 ]; then
+    echo -e "${red}There were errors found during code analysis! Please fix these errors accordingly.${no_color}"
+    exit 1
+fi
+
+echo -e "${yellow}Running tests with phpunit...${no_color}"
+docker exec -t accounts composer tests:docker
+if [ "$?" != 0 ]; then
+    echo -e "${red}Tests failed! Please take a look at the output and fix tests accordingly.${no_color}"
+    exit 1
+fi
+
+exit $?
